@@ -9,13 +9,14 @@ set(TARGETNAME OpenGL)
 project(${TARGETNAME})
 
 add_executable(${TARGETNAME} ${SRCS})
+add_subdirectory(dependencies/libAudio)
 
 include(${CMAKE_SOURCE_DIR}/dependencies/SDL2/cmake/sdl2-config.cmake)
 
 # Requires SDL2
 add_subdirectory(dependencies/ImGUI)
 
-target_link_libraries(${TARGETNAME} PUBLIC SDL2::SDL2 SDL2::SDL2main)
+target_link_libraries(${TARGETNAME} PUBLIC SDL2::SDL2 SDL2::SDL2main libAudio)
 
 target_link_libraries(${TARGETNAME} PUBLIC IMGUILib)
 

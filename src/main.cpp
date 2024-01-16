@@ -4,6 +4,13 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl.h"
 
+// Audio library.
+#include "libAudio/AudioContext.h"
+#include "libAudio/AudioEngine.h"
+#include "libAudio/SoundLoader.h"
+#include "libAudio/SoundInstance.h"
+#include "libAudio/Sound.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "STB/stb_image.h"
 
@@ -63,14 +70,14 @@ public:
   void AssignLeftClickMode(const char *InText,
     const std::function<void(ImVec2)> &InCallback) {
     StatusText = InText;
-    LeftClickCallback = [InCallback, this](ImVec2 pos) {
+    LeftClickCallback = [InCallback, this](const ImVec2 pos) {
       InCallback(pos);
       StatusText = nullptr;
       LeftClickCallback = nullptr;
     };
   }
 
-  void HandleMouse() {
+  void HandleMouse() const {
     if (MouseInfo.LeftUp() && LeftClickCallback)
       LeftClickCallback(ImVec2(WindowScroll.x + static_cast<float>(MouseInfo.X),
         WindowScroll.y + static_cast<float>(MouseInfo.Y)));
@@ -81,14 +88,14 @@ public:
     HandleMouse();
   }
 
-  void InitializeGraphics() {}
+  static void InitializeGraphics() {}
 
   void Initialize() {
     MouseInfo.Initialize();
     InitializeGraphics();
   }
 
-  [[nodiscard]] ImVec2 ScrolledPosition(float x, float y) const {
+  [[nodiscard]] ImVec2 ScrolledPosition(const float x, const float y) const {
     return { x - WindowScroll.x, y - WindowScroll.y };
   }
 
@@ -96,7 +103,7 @@ public:
     return ScrolledPosition(v.x, v.y);
   }
 
-  void Draw(std::stringstream &statusStream) {
+  void Draw(std::stringstream &statusStream) const {
     if (StatusText != nullptr)
       statusStream = std::stringstream();
 
@@ -125,37 +132,19 @@ int main(int argc, char *argv[]) {
 
   ToolView toolView;
 
-  // Decide GL+GLSL versions
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-  // GL ES 2.0 + GLSL 100
-  const char *glsl_version = "#version 100";
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#elif defined(__APPLE__)
-  // GL 3.2 Core + GLSL 150
-  const char *glsl_version = "#version 150";
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
-    SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-#else
   // GL 3.0 + GLSL 130
-  const char *glsl_version = "#version 130";
+  const auto glsl_version = "#version 130";
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#endif
 
   // Create window with graphics context
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-  constexpr SDL_WindowFlags windowFlags = static_cast<SDL_WindowFlags>(
+  constexpr auto windowFlags = static_cast<SDL_WindowFlags>(
     SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
   SDL_Window *window = SDL_CreateWindow("OpenGL", SDL_WINDOWPOS_CENTERED,
@@ -208,6 +197,7 @@ int main(int argc, char *argv[]) {
         if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
           toolView.WindowSize.x = static_cast<float>(event.window.data1);
           toolView.WindowSize.y = static_cast<float>(event.window.data2);
+          toolView.InitializeGraphics();
         }
       }
     }
