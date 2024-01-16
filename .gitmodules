@@ -1,0 +1,3 @@
+[submodule "dependencies/libAudio"]
+	path = dependencies/libAudio
+	url = https://github.com/Redwire-Software/libAudio
